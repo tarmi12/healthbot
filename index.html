@@ -1,84 +1,120 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.tailwindcss.com"></script>
-  <title>Health Tracker</title>
+  <title>Health Tracker Plus</title>
 </head>
-<body class="bg-gray-50 p-4 font-sans">
-  <div class="max-w-md mx-auto bg-white rounded-2xl shadow-xl p-6">
-    <h2 class="text-xl font-bold mb-4">บันทึกสุขภาพ</h2>
-    
-    <!-- Inputs -->
-    <div class="space-y-3">
-      <input type="number" id="sugar" placeholder="ระดับน้ำตาล" class="w-full border p-2 rounded">
-      <div class="grid grid-cols-2 gap-2">
-        <input type="number" id="bpTop" placeholder="SYS (ตัวบน)" class="border p-2 rounded">
-        <input type="number" id="bpBottom" placeholder="DIA (ตัวล่าง)" class="border p-2 rounded">
+<body class="bg-gray-100 p-4">
+  <div class="max-w-md mx-auto bg-white rounded-2xl shadow-lg p-6 space-y-5">
+    <h1 class="text-xl font-bold text-blue-600 text-center">บันทึกข้อมูลสุขภาพ</h1>
+
+    <!-- 1. ระดับน้ำตาล (Sugar) -->
+    <div>
+      <label class="block text-sm font-semibold text-gray-700">ระดับน้ำตาล</label>
+      <div class="flex mt-1">
+        <input type="number" id="sugar" class="w-full border p-2 rounded-l-lg focus:ring-2 focus:ring-blue-500" placeholder="0.0">
+        <button onclick="toggleUnit('sugar')" id="sugarBtn" class="bg-blue-500 text-white px-4 rounded-r-lg text-xs">mg/dL</button>
       </div>
-      <button onclick="submitData()" id="btn" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold">บันทึกข้อมูล</button>
     </div>
 
-    <!-- ตารางแสดงผลสรุป (ตามโครงสร้าง 16 คอลัมน์) -->
-    <div id="summaryTable" class="mt-8 hidden">
-      <h3 class="font-bold mb-2 text-gray-700">สรุปผลการบันทึก</h3>
-      <table class="w-full border-collapse border border-gray-200 text-sm">
-        <thead class="bg-gray-100">
-          <tr>
-            <th class="border p-2 text-left">หัวข้อ</th>
-            <th class="border p-2 text-left">ผลตรวจ (DeviceStatus)</th>
-            <th class="border p-2 text-center">สถานะ (Color)</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody">
-          <!-- ข้อมูลจะถูกเติมที่นี่ -->
-        </tbody>
-      </table>
+    <!-- 2. กรดยูริก (Uric Acid) - เพิ่มใหม่ -->
+    <div>
+      <label class="block text-sm font-semibold text-gray-700">กรดยูริก</label>
+      <div class="flex mt-1">
+        <input type="number" id="uric" class="w-full border p-2 rounded-l-lg focus:ring-2 focus:ring-purple-500" placeholder="0.0">
+        <button onclick="toggleUnit('uric')" id="uricBtn" class="bg-purple-500 text-white px-4 rounded-r-lg text-xs">mg/dL</button>
+      </div>
     </div>
+
+    <!-- 3. ความดันโลหิต (Blood Pressure) -->
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label class="block text-xs font-semibold text-gray-600">ตัวบน (SYS)</label>
+        <input type="number" id="bpTop" class="w-full border p-2 rounded-lg" placeholder="120">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-600">ตัวล่าง (DIA)</label>
+        <input type="number" id="bpBottom" class="w-full border p-2 rounded-lg" placeholder="80">
+      </div>
+    </div>
+
+    <!-- 4. ถ่ายรูปผลตรวจ (Camera) - เพิ่มใหม่ -->
+    <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center">
+      <input type="file" id="camera" accept="image/*" capture="environment" class="hidden" onchange="previewImage(event)">
+      <button onclick="document.getElementById('camera').click()" class="text-blue-500 font-bold">
+        📷 ถ่ายรูปหรือเลือกรูปภาพ
+      </button>
+      <img id="imgPreview" class="mt-2 hidden mx-auto h-40 rounded-lg shadow-md">
+    </div>
+
+    <!-- 5. หมายเหตุ (Note) - เพิ่มใหม่ -->
+    <div>
+      <label class="block text-sm font-semibold text-gray-700">หมายเหตุ</label>
+      <textarea id="note" rows="2" class="w-full border p-2 rounded-lg mt-1" placeholder="ระบุรายละเอียดเพิ่มเติม..."></textarea>
+    </div>
+
+    <button id="submitBtn" onclick="submitData()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg active:scale-95 transition">
+      บันทึกข้อมูล
+    </button>
   </div>
 
   <script>
-    async function submitData() {
-      const btn = document.getElementById('btn');
-      btn.disabled = true;
-      btn.innerText = "กำลังส่ง...";
+    let units = { sugar: 'mg/dL', uric: 'mg/dL' };
+    let imageBase64 = "";
 
-      const payload = {
-        userId: "USER_123", // ดึงจาก LIFF Profile
-        sugar: document.getElementById('sugar').value,
-        sugarUnit: "mg/dL",
-        bpTop: document.getElementById('bpTop').value,
-        bpBottom: document.getElementById('bpBottom').value,
-        heartRate: 75,
-        note: "บันทึกผ่าน LIFF"
-      };
-
-      try {
-        const response = await fetch("https://script.google.com/macros/s/AKfycbzyttbcVcttvBKklWSzYbVa-4BcZP8hDejnDFWu3hc8kaE6KLrV1Yi2cTb9aAVWIwio/exec", {
-          method: "POST",
-          body: JSON.stringify(payload)
-        });
-        const res = await response.json();
-        
-        if(res.status === "success") {
-          showTable(res.current);
-        }
-      } catch(e) { alert("Error"); }
-      finally { btn.disabled = false; btn.innerText = "บันทึกข้อมูล"; }
+    // ฟังก์ชันสลับหน่วย
+    function toggleUnit(type) {
+      const btn = document.getElementById(type + 'Btn');
+      units[type] = (units[type] === 'mg/dL') ? (type === 'sugar' ? 'mmol/L' : 'μmol/L') : 'mg/dL';
+      btn.innerText = units[type];
     }
 
-    function showTable(current) {
-      document.getElementById('summaryTable').classList.remove('hidden');
-      const body = document.getElementById('tableBody');
-      body.innerHTML = `
-        <tr>
-          <td class="border p-2 font-medium">สุขภาพโดยรวม</td>
-          <td class="border p-2">${current.devStatus}</td>
-          <td class="border p-2 text-center">
-            <span class="inline-block w-4 h-4 rounded-full" style="background-color: ${current.statusColor}"></span>
-          </td>
-        </tr>
-      `;
+    // ฟังก์ชันจัดการรูปภาพ
+    function previewImage(event) {
+      const file = event.target.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800; // บีบอัดภาพไม่ให้ใหญ่เกินไป
+          const scale = MAX_WIDTH / img.width;
+          canvas.width = MAX_WIDTH;
+          canvas.height = img.height * scale;
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          imageBase64 = canvas.toDataURL('image/jpeg', 0.7); // บีบอัดคุณภาพ 70%
+          document.getElementById('imgPreview').src = imageBase64;
+          document.getElementById('imgPreview').classList.remove('hidden');
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function submitData() {
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.innerText = "กำลังบันทึก...";
+
+      const payload = {
+        sugar: document.getElementById('sugar').value,
+        sugarUnit: units.sugar,
+        uric: document.getElementById('uric').value,
+        uricUnit: units.uric,
+        bpTop: document.getElementById('bpTop').value,
+        bpBottom: document.getElementById('bpBottom').value,
+        note: document.getElementById('note').value,
+        imageBase64: imageBase64,
+        userId: "USER_001" // ในอนาคตใช้ liff.getProfile()
+      };
+
+      console.log("ส่งข้อมูล:", payload);
+      // ตรงนี้ใส่โค้ด fetch ไปยัง GAS Web App ของคุณ
+      alert("เตรียมส่งข้อมูลไปยัง Backend!");
+      btn.disabled = false;
+      btn.innerText = "บันทึกข้อมูล";
     }
   </script>
 </body>
