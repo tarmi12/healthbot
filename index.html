@@ -94,28 +94,58 @@
     }
 
     async function submitData() {
-      const btn = document.getElementById('submitBtn');
-      btn.disabled = true;
-      btn.innerText = "กำลังบันทึก...";
+  const btn = document.getElementById('submitBtn');
+  const gasUrl = "https://script.google.com/macros/s/AKfycbzyttbcVcttvBKklWSzYbVa-4BcZP8hDejnDFWu3hc8kaE6KLrV1Yi2cTb9aAVWIwio/exec"; // *** สำคัญ: นำ URL ที่ได้จากขั้นตอน Deploy GAS มาวางตรงนี้ ***
 
-      const payload = {
-        sugar: document.getElementById('sugar').value,
-        sugarUnit: units.sugar,
-        uric: document.getElementById('uric').value,
-        uricUnit: units.uric,
-        bpTop: document.getElementById('bpTop').value,
-        bpBottom: document.getElementById('bpBottom').value,
-        note: document.getElementById('note').value,
-        imageBase64: imageBase64,
-        userId: "USER_001" // ในอนาคตใช้ liff.getProfile()
-      };
+  // 1. ตรวจสอบข้อมูลเบื้องต้น
+  const sugar = document.getElementById('sugar').value;
+  if (!sugar) {
+    alert("กรุณากรอกระดับน้ำตาลก่อนบันทึก");
+    return;
+  }
 
-      console.log("ส่งข้อมูล:", payload);
-      // ตรงนี้ใส่โค้ด fetch ไปยัง GAS Web App ของคุณ
-      alert("เตรียมส่งข้อมูลไปยัง Backend!");
-      btn.disabled = false;
-      btn.innerText = "บันทึกข้อมูล";
+  // 2. เปลี่ยนสถานะปุ่มเพื่อป้องกันการกดซ้ำ
+  btn.disabled = true;
+  btn.innerText = "กำลังส่งข้อมูล...";
+
+  // 3. เตรียมข้อมูล (Payload)
+  const payload = {
+    userId: "USER_LINE_001", // ในอนาคตจะดึงจาก liff.getProfile()
+    sugar: sugar,
+    sugarUnit: units.sugar,
+    uric: document.getElementById('uric').value,
+    uricUnit: units.uric,
+    bpTop: document.getElementById('bpTop').value,
+    bpBottom: document.getElementById('bpBottom').value,
+    heartRate: 75, // ค่าสมมติ หรือเพิ่มช่องกรอกได้
+    note: document.getElementById('note').value,
+    imageBase64: imageBase64 // ข้อมูลรูปภาพที่บีบอัดแล้ว
+  };
+
+  try {
+    // 4. ส่งข้อมูลไปที่ Backend (GAS)
+    const response = await fetch(gasUrl, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+
+    if (result.status === "success") {
+      alert("บันทึกข้อมูลเรียบร้อยแล้ว!");
+      showTable(result.current); // แสดงตารางสรุปผล
+    } else {
+      alert("เกิดข้อผิดพลาดจาก Server: " + result.message);
     }
+  } catch (error) {
+    console.error("Fetch Error:", error);
+    alert("ไม่สามารถเชื่อมต่อกับ Backend ได้ (ตรวจสอบการ Deploy GAS หรือ URL)");
+  } finally {
+    // 5. คืนค่าปุ่มกลับมาปกติ
+    btn.disabled = false;
+    btn.innerText = "บันทึกข้อมูล";
+  }
+}
   </script>
 </body>
 </html>
