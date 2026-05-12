@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Health Tracker</title>
+</head>
+<body class="bg-gray-50 p-4 font-sans">
+  <div class="max-w-md mx-auto bg-white rounded-2xl shadow-xl p-6">
+    <h2 class="text-xl font-bold mb-4">บันทึกสุขภาพ</h2>
+    
+    <!-- Inputs -->
+    <div class="space-y-3">
+      <input type="number" id="sugar" placeholder="ระดับน้ำตาล" class="w-full border p-2 rounded">
+      <div class="grid grid-cols-2 gap-2">
+        <input type="number" id="bpTop" placeholder="SYS (ตัวบน)" class="border p-2 rounded">
+        <input type="number" id="bpBottom" placeholder="DIA (ตัวล่าง)" class="border p-2 rounded">
+      </div>
+      <button onclick="submitData()" id="btn" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold">บันทึกข้อมูล</button>
+    </div>
+
+    <!-- ตารางแสดงผลสรุป (ตามโครงสร้าง 16 คอลัมน์) -->
+    <div id="summaryTable" class="mt-8 hidden">
+      <h3 class="font-bold mb-2 text-gray-700">สรุปผลการบันทึก</h3>
+      <table class="w-full border-collapse border border-gray-200 text-sm">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="border p-2 text-left">หัวข้อ</th>
+            <th class="border p-2 text-left">ผลตรวจ (DeviceStatus)</th>
+            <th class="border p-2 text-center">สถานะ (Color)</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <!-- ข้อมูลจะถูกเติมที่นี่ -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    async function submitData() {
+      const btn = document.getElementById('btn');
+      btn.disabled = true;
+      btn.innerText = "กำลังส่ง...";
+
+      const payload = {
+        userId: "USER_123", // ดึงจาก LIFF Profile
+        sugar: document.getElementById('sugar').value,
+        sugarUnit: "mg/dL",
+        bpTop: document.getElementById('bpTop').value,
+        bpBottom: document.getElementById('bpBottom').value,
+        heartRate: 75,
+        note: "บันทึกผ่าน LIFF"
+      };
+
+      try {
+        const response = await fetch("https://script.google.com/macros/s/AKfycbzyttbcVcttvBKklWSzYbVa-4BcZP8hDejnDFWu3hc8kaE6KLrV1Yi2cTb9aAVWIwio/exec", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        const res = await response.json();
+        
+        if(res.status === "success") {
+          showTable(res.current);
+        }
+      } catch(e) { alert("Error"); }
+      finally { btn.disabled = false; btn.innerText = "บันทึกข้อมูล"; }
+    }
+
+    function showTable(current) {
+      document.getElementById('summaryTable').classList.remove('hidden');
+      const body = document.getElementById('tableBody');
+      body.innerHTML = `
+        <tr>
+          <td class="border p-2 font-medium">สุขภาพโดยรวม</td>
+          <td class="border p-2">${current.devStatus}</td>
+          <td class="border p-2 text-center">
+            <span class="inline-block w-4 h-4 rounded-full" style="background-color: ${current.statusColor}"></span>
+          </td>
+        </tr>
+      `;
+    }
+  </script>
+</body>
+</html>
